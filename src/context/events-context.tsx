@@ -7,6 +7,7 @@ export type EventsContextValue = {
   updateEvent: (id: string, updates: Partial<Event>) => void;
   deleteEvent: (id: string) => void;
   addAttendee: (eventId: string, attendee: Attendee) => void;
+  removeAttendee: (eventId: string, attendeeId: string) => void;
 };
 
 // Only the context object lives here — no component, no hook

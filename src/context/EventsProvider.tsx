@@ -49,9 +49,31 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     );
   }
 
+  function removeAttendee(eventId: string, attendeeId: string) {
+    setEvents((prev) =>
+      prev.map((event) =>
+        event.id === eventId
+          ? {
+              ...event,
+              attendees: event.attendees.filter(
+                (attendee) => attendee.id !== attendeeId,
+              ),
+            }
+          : event,
+      ),
+    );
+  }
+
   return (
     <EventsContext.Provider
-      value={{ events, addEvent, updateEvent, deleteEvent, addAttendee }}
+      value={{
+        events,
+        addEvent,
+        updateEvent,
+        deleteEvent,
+        addAttendee,
+        removeAttendee,
+      }}
     >
       {children}
     </EventsContext.Provider>

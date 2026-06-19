@@ -1,58 +1,127 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEvents } from "../context/useEvents";
+import type { Event } from "../types/event";
 
 export const Route = createFileRoute("/calendar")({
-  component: Calendar,
+  component: CalendarPage,
 });
 
-function formatDate(dateStr: string) {
+function formatDateHeader(dateStr: string) {
   const [year, month, day] = dateStr.split("-");
   return `${day}.${month}.${year}`;
 }
 
-function Calendar() {
+function isPastEvent(dateStr: string) {
+  const todayStr = new Date().toISOString().split("T")[0];
+  return dateStr < todayStr;
+}
+
+export function CalendarPage() {
   const { events } = useEvents();
-  const sortedEvents = [...events].sort((a, b) => a.date.localeCompare(b.date));
+
+  // Filter down to active, viewable records
+  const publishedEvents = events.filter(
+    (e) => e.status === "published" || e.status === "completed",
+  );
+
+  // Group events by matching date string keys
+  const groupedEvents = publishedEvents.reduce<Record<string, Event[]>>(
+    (groups, event) => {
+      const date = event.date;
+      if (!groups[date]) {
+        groups[date] = [];
+      }
+      groups[date].push(event);
+      return groups;
+    },
+    {},
+  );
+
+  // Sort dates chronological (ascending order)
+  const sortedDates = Object.keys(groupedEvents).sort();
 
   return (
-    <section className="space-y-5">
+    <div className="max-w-2xl space-y-6">
       <div>
-        <p className="text-sm font-medium uppercase tracking-wide text-teal-700">
-          Schedule
+        <h1 className="text-3xl font-bold text-slate-950">Calendar Overview</h1>
+        <p className="text-sm text-slate-600 mt-1">
+          Track all published and scheduled upcoming sessions organized by
+          timeline sequence.
         </p>
-        <h1 className="mt-1 text-3xl font-bold text-slate-950">Calendar</h1>
       </div>
 
-      {sortedEvents.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
-          No events available yet.
+      {sortedDates.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center bg-white">
+          <p className="text-sm text-slate-600">
+            No published events found on schedule.
+          </p>
+          <Link
+            to="/events/new"
+            className="mt-3 inline-block text-sm font-medium text-teal-700 hover:underline"
+          >
+            Schedule your first event
+          </Link>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="grid grid-cols-[120px_1fr] border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-            <span>Date</span>
-            <span>Event</span>
-          </div>
-          <ul className="divide-y divide-slate-100">
-            {sortedEvents.map((event) => (
-              <li
-                key={event.id}
-                className="grid grid-cols-1 gap-1 px-4 py-3 sm:grid-cols-[120px_1fr]"
+        <div className="space-y-6">
+          {sortedDates.map((date) => {
+            const dateIsPast = isPastEvent(date);
+
+            // Sort day events by time ascending
+            const dailyEvents = groupedEvents[date].sort((a, b) =>
+              a.time.localeCompare(b.time),
+            );
+
+            return (
+              <section
+                key={date}
+                className={`space-y-2 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition ${
+                  dateIsPast ? "opacity-60 bg-slate-50/50" : ""
+                }`}
               >
-                <span className="text-sm font-medium text-slate-900">
-                  {formatDate(event.date)}
-                </span>
-                <div>
-                  <p className="font-medium text-slate-950">{event.title}</p>
-                  <p className="text-sm text-slate-500">
-                    {event.time} - {event.location}
-                  </p>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-md font-bold text-slate-900 flex items-center gap-2">
+                    📅 {formatDateHeader(date)}
+                  </h2>
+                  {dateIsPast && (
+                    <span className="rounded bg-slate-200 px-2 py-0.5 text-xxs font-semibold uppercase tracking-wider text-slate-600">
+                      Past Event
+                    </span>
+                  )}
                 </div>
-              </li>
-            ))}
-          </ul>
+
+                <ul className="divide-y divide-slate-100">
+                  {dailyEvents.map((event) => (
+                    <li
+                      key={event.id}
+                      className="py-2 flex items-center justify-between text-sm gap-4"
+                    >
+                      <div className="flex items-baseline gap-3">
+                        <span className="font-mono text-teal-700 font-semibold shrink-0">
+                          {event.time}
+                        </span>
+                        <span className="text-slate-800 font-medium">
+                          {event.title}
+                        </span>
+                        <span className="text-xs text-slate-500 hidden sm:inline capitalize">
+                          ({event.category} • {event.location})
+                        </span>
+                      </div>
+                      <Link
+                        to="/events/$eventId"
+                        params={{ eventId: event.id }}
+                        className="text-xs font-semibold text-teal-700 hover:text-teal-900 whitespace-nowrap shrink-0"
+                      >
+                        View →
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
         </div>
       )}
-    </section>
+    </div>
   );
 }
