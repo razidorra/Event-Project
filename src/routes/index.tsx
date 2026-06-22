@@ -1,7 +1,15 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEvents } from "../context/useEvents";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: ({ context, location }) => {
+    if (!context.auth.isSignedIn) {
+      throw redirect({
+        to: "/login",
+        search: { redirect: location.href },
+      });
+    }
+  },
   component: Dashboard,
 });
 
@@ -11,11 +19,8 @@ function formatDate(dateStr: string) {
 }
 
 function Dashboard() {
-  // events now comes from the shared context (and therefore from localStorage),
-  // not from the static initialEvents file directly
   const { events } = useEvents();
 
-  // Today's date as an ISO string (YYYY-MM-DD) so we can compare it to event.date
   const today = new Date().toISOString().split("T")[0];
 
   const totalEvents = events.length;
@@ -24,14 +29,11 @@ function Dashboard() {
   const cancelledCount = events.filter((e) => e.status === "cancelled").length;
   const completedCount = events.filter((e) => e.status === "completed").length;
 
-  // reduce() runs once over the array and accumulates the total attendee count
   const totalAttendees = events.reduce(
     (sum, event) => sum + event.attendees.length,
     0,
   );
 
-  // Average utilization in percent:
-  // compute attendees/maxAttendees for each event, then average across all events
   const averageUtilization =
     totalEvents === 0
       ? 0
@@ -44,8 +46,6 @@ function Dashboard() {
             100,
         );
 
-  // Upcoming events: date is today or later, and status is not "cancelled",
-  // sorted ascending by date (soonest event first)
   const upcomingEvents = events
     .filter((event) => event.date >= today && event.status !== "cancelled")
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -54,15 +54,9 @@ function Dashboard() {
   const nextThreeEvents = upcomingEvents.slice(0, 3);
 
   return (
-    <section className="space-y-6">
-      <div>
-        <p className="text-sm font-medium uppercase tracking-wide text-teal-700">
-          Overview
-        </p>
-        <h1 className="mt-1 text-3xl font-bold text-slate-950">Dashboard</h1>
-      </div>
+    <div className="flex flex-col gap-6">
+      <h1 className="text-2xl font-bold">Dashboard</h1>
 
-      {/* Stat tiles */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Total Events" value={totalEvents} />
         <StatCard label="Published" value={publishedCount} />
@@ -77,44 +71,46 @@ function Dashboard() {
         />
       </div>
 
-      {/* List of the next 3 events */}
-      <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-950">
-          Upcoming Events
-        </h2>
+      <div>
+        <h2 className="text-lg font-semibold mb-2">Upcoming Events</h2>
         {nextThreeEvents.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">No upcoming events.</p>
+          <p className="text-sm text-gray-500">No upcoming events.</p>
         ) : (
-          <ul className="mt-3 divide-y divide-slate-100">
+          <ul className="flex flex-col gap-2">
             {nextThreeEvents.map((event) => (
               <li
                 key={event.id}
-                className="flex flex-col gap-1 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+                className="border rounded p-3 text-sm flex items-center justify-between gap-3"
               >
                 <Link
                   to="/events/$eventId"
                   params={{ eventId: event.id }}
-                  className="font-medium text-slate-950 hover:text-teal-800"
+                  className="font-medium hover:underline truncate"
                 >
                   {event.title}
                 </Link>
-                <span className="text-slate-500">{formatDate(event.date)}</span>
+                <span className="text-gray-500 shrink-0">
+                  {formatDate(event.date)}
+                </span>
               </li>
             ))}
           </ul>
         )}
       </div>
-    </section>
+    </div>
   );
 }
 
-// Small reusable component for a single stat tile,
-// so we don't have to copy-paste the same look 8 times
+// "truncate" keeps the value on a single line with an ellipsis if it's too long,
+// so one long event title can't stretch the height of the entire grid row.
+// "title={...}" shows the full text as a native tooltip on hover.
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-sm font-medium text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
+    <div className="border rounded-lg p-4">
+      <p className="text-sm text-gray-500">{label}</p>
+      <p className="text-lg font-semibold truncate" title={String(value)}>
+        {value}
+      </p>
     </div>
   );
 }

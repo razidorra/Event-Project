@@ -1,49 +1,44 @@
-import { createRootRoute, Outlet, Link } from "@tanstack/react-router";
+import {
+  createRootRouteWithContext,
+  Outlet,
+  Link,
+} from "@tanstack/react-router";
+import { Show, UserButton } from "@clerk/react";
+import type { useAuth } from "@clerk/react";
 
-// This route is the "shell" for ALL pages — it always renders,
-// no matter which subpage is currently active.
-export const Route = createRootRoute({
+export type RouterContext = {
+  auth: ReturnType<typeof useAuth>;
+};
+
+export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
 });
 
 function RootComponent() {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white/95">
-        <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 py-4">
-          <span className="mr-4 text-lg font-bold text-slate-950">
-            Event Board
-          </span>
-          {/* [&.active]:font-bold bolds the link once its route is active
-              (TanStack Router automatically adds an "active" class) */}
-          <Link
-            to="/"
-            className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-950 [&.active]:bg-teal-50 [&.active]:text-teal-800"
-          >
+    <div className="min-h-screen flex flex-col">
+      <header className="border-b p-4 flex items-center justify-between">
+        <nav className="flex gap-4">
+          <Link to="/" className="[&.active]:font-bold">
             Dashboard
           </Link>
-          <Link
-            to="/events"
-            className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-950 [&.active]:bg-teal-50 [&.active]:text-teal-800"
-          >
+          <Link to="/events" className="[&.active]:font-bold">
             Events
           </Link>
-          <Link
-            to="/calendar"
-            className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-950 [&.active]:bg-teal-50 [&.active]:text-teal-800"
-          >
+          <Link to="/calendar" className="[&.active]:font-bold">
             Calendar
           </Link>
-          <Link
-            to="/about"
-            className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-950 [&.active]:bg-teal-50 [&.active]:text-teal-800"
-          >
+          <Link to="/about" className="[&.active]:font-bold">
             About
           </Link>
         </nav>
+
+        {/* Only renders the avatar/menu (which includes "Sign out") when someone is signed in */}
+        <Show when="signed-in">
+          <UserButton />
+        </Show>
       </header>
-      <main className="mx-auto w-full max-w-6xl px-4 py-8">
-        {/* Outlet is the placeholder where the currently active subpage gets rendered */}
+      <main className="flex-1 p-4">
         <Outlet />
       </main>
     </div>
