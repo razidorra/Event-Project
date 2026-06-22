@@ -1,5 +1,5 @@
 // Possible status values an event can have.
-// A union type prevents typos like "Draft " from sneaking in anywhere.
+// A union type prevents types like "Draft " from sneaking in anywhere.
 export type EventStatus = "draft" | "published" | "cancelled" | "completed";
 
 // Possible categories for an event.
@@ -32,4 +32,5 @@ export type Event = {
   maxAttendees: number;
   attendees: Attendee[];
   createdAt: string;
+  createdByUserId?: string;
 };

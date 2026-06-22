@@ -1,9 +1,22 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router";
+import { useAuth } from "@clerk/react";
 import { useEvents } from "../../context/useEvents";
 import { EventForm, type EventFormValues } from "../../components/EventForm";
 import type { Event } from "../../types/event";
 
 export const Route = createFileRoute("/events/new")({
+  beforeLoad: ({ context, location }) => {
+    if (!context.auth.isSignedIn) {
+      throw redirect({
+        to: "/login",
+        search: { redirect: location.href },
+      });
+    }
+  },
   component: NewEvent,
 });
 
@@ -18,8 +31,11 @@ function slugify(title: string) {
 function NewEvent() {
   const { addEvent, events } = useEvents();
   const navigate = useNavigate();
+  const { userId } = useAuth();
 
   function handleCreate(values: EventFormValues) {
+    if (!userId) return;
+
     const baseId = slugify(values.title) || "event";
     let id = baseId;
     let counter = 1;
@@ -33,6 +49,7 @@ function NewEvent() {
       ...values,
       attendees: [],
       createdAt: new Date().toISOString().split("T")[0],
+      createdByUserId: userId ?? undefined,
     };
 
     addEvent(newEvent);

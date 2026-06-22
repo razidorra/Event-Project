@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useAuth } from "@clerk/react";
 import { useState, type FormEvent } from "react";
 import { useEvents } from "../../context/useEvents";
 import { OccupancyBar } from "../../components/OccupancyBar";
@@ -23,6 +24,7 @@ function EventDetails() {
   const { eventId } = Route.useParams();
   const navigate = useNavigate();
   const { events, addAttendee, removeAttendee, deleteEvent } = useEvents();
+  const { userId } = useAuth();
 
   // Attendee registration input states
   const [attendeeName, setAttendeeName] = useState("");
@@ -49,6 +51,7 @@ function EventDetails() {
   }
 
   const currentEvent = event;
+  const canDeleteEvent = currentEvent.createdByUserId === userId;
 
   function handleAddAttendee(e: FormEvent) {
     e.preventDefault();
@@ -95,6 +98,10 @@ function EventDetails() {
   }
 
   function handleDelete() {
+    if (!canDeleteEvent) {
+      return;
+    }
+
     const shouldDelete = window.confirm(
       `Do you really want to delete the event "${currentEvent.title}"?`,
     );
@@ -222,12 +229,14 @@ function EventDetails() {
         >
           Edit Event
         </Link>
-        <button
-          onClick={handleDelete}
-          className="rounded-md bg-rose-50 px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100 transition"
-        >
-          Delete Event
-        </button>
+        {canDeleteEvent && (
+          <button
+            onClick={handleDelete}
+            className="rounded-md bg-rose-50 px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100 transition"
+          >
+            Delete Event
+          </button>
+        )}
         <Link
           to="/events"
           className="ml-auto rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"

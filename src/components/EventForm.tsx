@@ -1,7 +1,10 @@
 import { useState, type FormEvent } from "react";
 import type { Event, EventCategory, EventStatus } from "../types/event";
 
-export type EventFormValues = Omit<Event, "id" | "attendees" | "createdAt">;
+export type EventFormValues = Omit<
+  Event,
+  "id" | "attendees" | "createdAt" | "createdByUserId"
+>;
 
 type FormErrors = {
   title?: string;

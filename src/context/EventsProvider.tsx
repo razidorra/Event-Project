@@ -17,7 +17,7 @@ function loadEvents(): Event[] {
   return initialEvents;
 }
 
-// This file now exports ONLY a component — Fast Refresh is happy
+// This file now exports ONLY a component
 export function EventsProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<Event[]>(loadEvents);
 

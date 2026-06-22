@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useAuth } from "@clerk/react";
+import { useState } from "react";
 import { useEvents } from "../../context/useEvents";
 import { EventCard } from "../../components/EventCard";
 import type { EventCategory, EventStatus } from "../../types/event";
@@ -15,6 +16,7 @@ function EventsOverview() {
   // events now comes from the shared context (and localStorage),
   // not from the static initialEvents file
   const { events } = useEvents();
+  const { isSignedIn } = useAuth();
 
   // State for the search input (title search)
   const [search, setSearch] = useState("");
@@ -27,45 +29,43 @@ function EventsOverview() {
   // State for the currently selected sort order
   const [sortOption, setSortOption] = useState<SortOption>("date-asc");
 
-  // useMemo recalculates the filtered/sorted list only when one of the
-  // values in the dependency array below changes — not on every render.
-  const filteredEvents = useMemo(() => {
-    let result = events;
+  let filteredEvents = events;
 
-    // Search: lowercase both strings so the search is case-insensitive
-    if (search.trim() !== "") {
-      const term = search.toLowerCase();
-      result = result.filter((event) =>
-        event.title.toLowerCase().includes(term),
-      );
+  // Search: lowercase both strings so the search is case-insensitive
+  if (search.trim() !== "") {
+    const term = search.toLowerCase();
+    filteredEvents = filteredEvents.filter((event) =>
+      event.title.toLowerCase().includes(term),
+    );
+  }
+
+  // Only apply the status filter if "All Statuses" is not selected
+  if (statusFilter !== "all") {
+    filteredEvents = filteredEvents.filter(
+      (event) => event.status === statusFilter,
+    );
+  }
+
+  // Same idea for the category filter
+  if (categoryFilter !== "all") {
+    filteredEvents = filteredEvents.filter(
+      (event) => event.category === categoryFilter,
+    );
+  }
+
+  // [...filteredEvents] creates a copy so .sort() doesn't mutate the original array
+  filteredEvents = [...filteredEvents].sort((a, b) => {
+    if (sortOption === "date-asc") {
+      // localeCompare works correctly here because our dates are stored
+      // in "YYYY-MM-DD" format, which sorts correctly as plain strings
+      return a.date.localeCompare(b.date);
     }
-
-    // Only apply the status filter if "All Statuses" is not selected
-    if (statusFilter !== "all") {
-      result = result.filter((event) => event.status === statusFilter);
+    if (sortOption === "date-desc") {
+      return b.date.localeCompare(a.date);
     }
-
-    // Same idea for the category filter
-    if (categoryFilter !== "all") {
-      result = result.filter((event) => event.category === categoryFilter);
-    }
-
-    // [...result] creates a copy so .sort() doesn't mutate the original array
-    const sorted = [...result].sort((a, b) => {
-      if (sortOption === "date-asc") {
-        // localeCompare works correctly here because our dates are stored
-        // in "YYYY-MM-DD" format, which sorts correctly as plain strings
-        return a.date.localeCompare(b.date);
-      }
-      if (sortOption === "date-desc") {
-        return b.date.localeCompare(a.date);
-      }
-      // case: 'title-asc'
-      return a.title.localeCompare(b.title);
-    });
-
-    return sorted;
-  }, [events, search, statusFilter, categoryFilter, sortOption]);
+    // case: 'title-asc'
+    return a.title.localeCompare(b.title);
+  });
 
   return (
     <section className="space-y-6">
@@ -77,12 +77,14 @@ function EventsOverview() {
           </p>
           <h1 className="mt-1 text-3xl font-bold text-slate-950">Events</h1>
         </div>
-        <Link
-          to="/events/new"
-          className="w-fit rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800"
-        >
-          New Event
-        </Link>
+        {isSignedIn && (
+          <Link
+            to="/events/new"
+            className="w-fit rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800"
+          >
+            New Event
+          </Link>
+        )}
       </div>
 
       {/* Filter and sort bar */}
